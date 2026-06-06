@@ -3,43 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>猫头鹰与狐狸 - 游戏说明</title>
+    <title>猫头鹰与狐狸 - 版本选择</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             display: flex; justify-content: center; align-items: center;
             min-height: 100vh; background: #1a1a2e;
             font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            overflow: hidden;
+            color: #eee; text-align: center; padding: 20px;
         }
-        .overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center;
-            z-index: 10; animation: fadeIn 0.5s ease;
+        .container {
+            background: #2a2a3a; border-radius: 16px;
+            padding: 30px 24px; max-width: 400px; width: 100%;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .dialog {
-            background: #2a2a3a; border-radius: 16px; padding: 30px 24px;
-            max-width: 500px; width: 92%; color: #eee;
-            box-shadow: 0 12px 40px rgba(0,0,0,0.6);
-            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            text-align: center;
+        h1 { font-size: 1.4em; margin-bottom: 10px; }
+        .notice {
+            font-size: 0.85em; color: #ccc; margin-bottom: 24px;
+            line-height: 1.6; background: rgba(255,255,255,0.05);
+            padding: 12px; border-radius: 8px;
         }
-        .dialog h2 { font-size: 1.6em; margin-bottom: 6px; }
-        .dialog .subtitle { font-size: 0.9em; color: #aaa; margin-bottom: 18px; }
-        .desc {
-            text-align: left; font-size: 0.82em; line-height: 1.8;
-            margin-bottom: 20px; background: rgba(255,255,255,0.05);
-            padding: 14px 16px; border-radius: 8px;
-            max-height: 300px; overflow-y: auto;
-        }
-        .desc b { color: #ffd966; }
+        .btn-group { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
         .btn {
-            background: #5b8def; border: none; color: #fff; font-weight: bold;
-            font-size: 1em; padding: 10px 36px; border-radius: 6px;
-            cursor: pointer; transition: background 0.2s; letter-spacing: 0.04em;
+            display: inline-block; padding: 10px 28px;
+            border-radius: 6px; font-weight: bold; font-size: 0.9em;
+            text-decoration: none; transition: background 0.2s;
+            letter-spacing: 0.04em;
         }
-        .btn:hover { background: #4a7adf; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .btn-new { background: #5b8def; color: #fff; }
+        .btn-new:hover { background: #4a7adf; }
+        .btn-old { background: #555; color: #ccc; }
+        .btn-old:hover { background: #666; }
         @keyframes popIn {
             from { transform: scale(0.7); opacity: 0; }
             to { transform: scale(1); opacity: 1; }
@@ -47,41 +42,16 @@
     </style>
 </head>
 <body>
-    <div class="overlay" id="overlay">
-        <div class="dialog">
-            <h2>🦉 茅童抓狐狸 🦊</h2>
-            <div class="subtitle">Developed by DeepSeek，ZLM，ZHG1027</div>
-            <div class="desc">
-	<b>【故障反馈】</b><br>
-                若发现问题，欢迎反馈至邮箱2132653207@qq.com。
-                <br><br>
-
-                <b>【游戏环境】</b><br>
-                你和另一位玩家共享同一台电脑，使用键盘的不同区域进行对抗。屏幕画面会自动适应窗口大小，地图中随机分布着墙壁和可拾取的武器箱子。两位角色分别由<b>玩家1（WASD + F）</b>和<b>玩家2（方向键 + /）</b>控制。游戏支持在设置中自定义开火键。
-                <br><br>
-                <b>【核心目标】</b><br>
-                控制你的角色，利用武器或直接碰撞击败对手。当对方<b>血条（初始100点）归零</b>时，你所在的阵营获胜。胜利后可按空格键或点击按钮重新开局。
-                <br><br>
-                <b>【角色互换机制】</b><br>
-                每<b>10秒</b>，两位玩家控制的角色会强制交换——控制猫头鹰的玩家将改为控制狐狸，反之亦然。屏幕上方有倒计时条提示，互换时会有全屏闪烁提醒。这一机制要求双方随时调整策略，前一秒的追击者下一秒可能成为逃生者。
-                <br><br>
-                <b>【武器与道具】</b><br>
-                地图上散布着金色箱子，触碰即可拾取。箱子内可能包含<b>手枪（5发子弹）</b>或<b>炸弹（2枚）</b>。子弹高速飞行，碰到墙壁后消失；炸弹投出后有短暂延迟后爆炸，对范围内的角色造成伤害（中心区域伤害更高）。角色最多同时携带一件武器，子弹或炸弹用尽后武器自动消失。拾取新武器会覆盖当前武器。
-                <br><br>
-                <b>【伤害与胜负】</b><br>
-                被子弹击中扣除<b>10点</b>生命；被炸弹爆炸波及扣除<b>10点</b>，若处于爆炸中心附近则扣除<b>20点</b>。此外，猫头鹰与狐狸<b>直接碰撞</b>时，当前控制猫头鹰的玩家立刻获胜，无视生命值。
-                <br><br>
-                <b>【按键自定义】</b><br>
-                点击主界面的“⚙️设置”按钮，可分别修改两位玩家的开火键。移动键（WASD/方向键）保持固定，确保操作稳定。
-            </div>
-            <button class="btn" id="enterBtn">我已了解，开始对战</button>
+    <div class="container">
+        <h1>🦉 茅童抓狐狸 🦊</h1>
+        <div class="notice">
+            ⚡ 新版本已发布！<br>
+            全新玩家昵称系统、优化对战平衡、更流畅的操作体验。
+        </div>
+        <div class="btn-group">
+            <a href="v2.html" class="btn btn-new">✨ 新版</a>
+            <a href="games.html" class="btn btn-old">📦 旧版</a>
         </div>
     </div>
-    <script>
-        document.getElementById('enterBtn').addEventListener('click', () => {
-            document.getElementById('overlay').style.animation = 'fadeIn 0.3s ease reverse';
-            setTimeout(() => { window.location.href = 'games.html'; }, 250);
-        });
-    </script>
 </body>
 </html>

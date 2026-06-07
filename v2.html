@@ -76,7 +76,7 @@
             <button class="btn" id="startBtn">▶ 开始游戏</button>
             <button class="btn" id="settingsBtn">⚙️ 设置</button>
             <button class="btn" id="editNameBtn">✏️ 昵称</button>
-            <span id="controlsHint">🔄10秒互换 | 🦉碰🦊狐狸输 | 空格开始</span>
+            <span id="controlsHint">🔄10秒互换 空格开始</span>
         </div>
         <div class="hp-bars">
             <div class="hp-bar-wrap">
@@ -137,7 +137,6 @@
             const p2KeysDisplay = document.getElementById('p2Keys');
             const controlsHint = document.getElementById('controlsHint');
 
-            // 昵称相关元素
             const p1NameDisplay = document.getElementById('p1NameDisplay');
             const p2NameDisplay = document.getElementById('p2NameDisplay');
             const p1HPLabel = document.getElementById('p1HPLabel');
@@ -149,52 +148,16 @@
             const resetNamesBtn = document.getElementById('resetNames');
 
             let playerNames = { p1: '玩家1', p2: '玩家2' };
-            try {
-                const saved = localStorage.getItem('owlFoxNames');
-                if (saved) {
-                    const parsed = JSON.parse(saved);
-                    if (parsed && parsed.p1 && parsed.p2) playerNames = parsed;
-                }
-            } catch(e) {}
-
-            function updateNameDisplays() {
-                p1NameDisplay.textContent = playerNames.p1;
-                p2NameDisplay.textContent = playerNames.p2;
-                p1HPLabel.textContent = playerNames.p1;
-                p2HPLabel.textContent = playerNames.p2;
-            }
+            try { const saved = localStorage.getItem('owlFoxNames'); if (saved) { const parsed = JSON.parse(saved); if (parsed && parsed.p1 && parsed.p2) playerNames = parsed; } } catch(e) {}
+            function updateNameDisplays() { p1NameDisplay.textContent = playerNames.p1; p2NameDisplay.textContent = playerNames.p2; p1HPLabel.textContent = playerNames.p1; p2HPLabel.textContent = playerNames.p2; }
             updateNameDisplays();
+            nameInput1.value = playerNames.p1; nameInput2.value = playerNames.p2;
 
-            nameInput1.value = playerNames.p1;
-            nameInput2.value = playerNames.p2;
+            editNameBtn.addEventListener('click', () => { nameOverlay.classList.remove('hidden'); nameInput1.value = playerNames.p1; nameInput2.value = playerNames.p2; });
+            saveNamesBtn.addEventListener('click', () => { playerNames.p1 = nameInput1.value.trim() || '玩家1'; playerNames.p2 = nameInput2.value.trim() || '玩家2'; try { localStorage.setItem('owlFoxNames', JSON.stringify(playerNames)); } catch(e) {} updateNameDisplays(); nameOverlay.classList.add('hidden'); });
+            resetNamesBtn.addEventListener('click', () => { playerNames = { p1: '玩家1', p2: '玩家2' }; try { localStorage.setItem('owlFoxNames', JSON.stringify(playerNames)); } catch(e) {} updateNameDisplays(); nameInput1.value = playerNames.p1; nameInput2.value = playerNames.p2; });
+            nameOverlay.addEventListener('click', (e) => { if (e.target === nameOverlay) nameOverlay.classList.add('hidden'); });
 
-            editNameBtn.addEventListener('click', () => {
-                nameOverlay.classList.remove('hidden');
-                nameInput1.value = playerNames.p1;
-                nameInput2.value = playerNames.p2;
-            });
-
-            saveNamesBtn.addEventListener('click', () => {
-                playerNames.p1 = nameInput1.value.trim() || '玩家1';
-                playerNames.p2 = nameInput2.value.trim() || '玩家2';
-                try { localStorage.setItem('owlFoxNames', JSON.stringify(playerNames)); } catch(e) {}
-                updateNameDisplays();
-                nameOverlay.classList.add('hidden');
-            });
-
-            resetNamesBtn.addEventListener('click', () => {
-                playerNames = { p1: '玩家1', p2: '玩家2' };
-                try { localStorage.setItem('owlFoxNames', JSON.stringify(playerNames)); } catch(e) {}
-                updateNameDisplays();
-                nameInput1.value = playerNames.p1;
-                nameInput2.value = playerNames.p2;
-            });
-
-            nameOverlay.addEventListener('click', (e) => {
-                if (e.target === nameOverlay) nameOverlay.classList.add('hidden');
-            });
-
-            // ========== 游戏常量 ==========
             const WORLD_W = 900, WORLD_H = 600;
             const PLAYER_SPEED = 230;
             const PLAYER_RADIUS = 14;
@@ -204,449 +167,286 @@
             const BOMB_TIMER = 2.0;
             const EXPLOSION_RADIUS = 75;
             const EXPLOSION_CENTER_RADIUS = 28;
-            const DAMAGE_NORMAL = 10;
-            const DAMAGE_CENTER = 20;
+            const DAMAGE_BULLET = 2;
+            const DAMAGE_BOMB_NORMAL = 2;
+            const DAMAGE_BOMB_CENTER = 5;
             const CRATE_RADIUS = 12;
             const EXPLOSION_DISPLAY_TIME = 0.5;
             const BOMB_GRACE_PERIOD = 0.12;
+            const FIRE_COOLDOWN = 100;
+            const CRATE_RESPAWN_COUNT = 5;
+            const WEAPON_OFFSET_DISTANCE = 26;
 
             const defaultBindings = {
                 p1: { up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD', fire: 'KeyF' },
                 p2: { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', fire: 'Slash' }
             };
             let bindings = JSON.parse(JSON.stringify(defaultBindings));
+            try { const saved = localStorage.getItem('owlFoxBindings_v7'); if (saved) { const parsed = JSON.parse(saved); if (parsed && parsed.p1 && parsed.p2) bindings = parsed; } } catch (e) {}
+            function saveBindings() { try { localStorage.setItem('owlFoxBindings_v7', JSON.stringify(bindings)); } catch (e) {} }
+            function getSafeBindings() { return (bindings && bindings.p1 && bindings.p2) ? bindings : defaultBindings; }
 
-            try {
-                const saved = localStorage.getItem('owlFoxBindings_v7');
-                if (saved) {
-                    const parsed = JSON.parse(saved);
-                    if (parsed && parsed.p1 && parsed.p2) bindings = parsed;
-                }
-            } catch (e) {}
-
-            function saveBindings() {
-                try { localStorage.setItem('owlFoxBindings_v7', JSON.stringify(bindings)); } catch (e) {}
-            }
-
-            function getSafeBindings() {
-                return (bindings && bindings.p1 && bindings.p2) ? bindings : defaultBindings;
-            }
-
-            function getAllActionKeys() {
-                const keys = new Set();
-                const b = getSafeBindings();
-                try {
-                    for (const player of ['p1', 'p2']) {
-                        for (const action of ['up', 'down', 'left', 'right', 'fire']) {
-                            keys.add(b[player][action]);
-                        }
-                    }
-                } catch (e) {}
-                keys.add('Space');
-                return keys;
-            }
-
-            function getKeyDisplay(code) {
-                if (code.startsWith('Key')) return code.slice(3).toUpperCase();
-                if (code.startsWith('Arrow')) return code.slice(5);
-                if (code === 'Slash') return '/';
-                return code;
-            }
-
-            function updateKeyDisplays() {
-                const b = getSafeBindings();
-                p1KeysDisplay.textContent = `${getKeyDisplay(b.p1.up)}${getKeyDisplay(b.p1.down)}${getKeyDisplay(b.p1.left)}${getKeyDisplay(b.p1.right)}/${getKeyDisplay(b.p1.fire)}`;
-                p2KeysDisplay.textContent = `${getKeyDisplay(b.p2.up)}${getKeyDisplay(b.p2.down)}${getKeyDisplay(b.p2.left)}${getKeyDisplay(b.p2.right)}/${getKeyDisplay(b.p2.fire)}`;
-            }
+            function getAllActionKeys() { const keys = new Set(); const b = getSafeBindings(); try { for (const p of ['p1','p2']) for (const a of ['up','down','left','right','fire']) keys.add(b[p][a]); } catch(e){} keys.add('Space'); return keys; }
+            function getKeyDisplay(code) { if (code.startsWith('Key')) return code.slice(3).toUpperCase(); if (code.startsWith('Arrow')) return code.slice(5); if (code === 'Slash') return '/'; return code; }
+            function updateKeyDisplays() { const b = getSafeBindings(); p1KeysDisplay.textContent = `${getKeyDisplay(b.p1.up)}${getKeyDisplay(b.p1.down)}${getKeyDisplay(b.p1.left)}${getKeyDisplay(b.p1.right)}/${getKeyDisplay(b.p1.fire)}`; p2KeysDisplay.textContent = `${getKeyDisplay(b.p2.up)}${getKeyDisplay(b.p2.down)}${getKeyDisplay(b.p2.left)}${getKeyDisplay(b.p2.right)}/${getKeyDisplay(b.p2.fire)}`; }
             updateKeyDisplays();
 
-            // 设置面板（开火键）
             const settingsOverlay = document.getElementById('settingsOverlay');
-            const tabP1 = document.getElementById('tabP1');
-            const tabP2 = document.getElementById('tabP2');
+            const tabP1 = document.getElementById('tabP1'); const tabP2 = document.getElementById('tabP2');
             const bindingsContainer = document.getElementById('bindingsContainer');
-            const closeSettingsBtn = document.getElementById('closeSettings');
-            const resetBindingsBtn = document.getElementById('resetBindings');
+            let currentTab = 'p1'; let listeningAction = null;
 
-            let currentTab = 'p1';
-            let listeningAction = null;
+            function renderBindings() { const b = getSafeBindings()[currentTab]; const actions = [{ key:'up',label:'上'},{ key:'down',label:'下'},{ key:'left',label:'左'},{ key:'right',label:'右'},{ key:'fire',label:'开火' }]; bindingsContainer.innerHTML = actions.map(a => `<div class="binding-row"><span class="binding-label">${a.label}</span><span class="binding-key" data-action="${a.key}">${getKeyDisplay(b[a.key])}</span></div>`).join(''); document.querySelectorAll('.binding-key').forEach(el => { el.addEventListener('click', () => { if (listeningAction) return; startListening(el.dataset.action, el); }); }); }
+            function startListening(action, element) { if (listeningAction) return; element.classList.add('listening'); element.textContent = '...'; const handler = (e) => { e.preventDefault(); e.stopImmediatePropagation(); const code = e.code; const b = getSafeBindings(); for (const p of ['p1','p2']) for (const a of ['up','down','left','right','fire']) if (b[p][a] === code && !(p===currentTab && a===action)) { alert('该按键已被绑定'); stopListening(); renderBindings(); return; } bindings[currentTab][action] = code; saveBindings(); updateKeyDisplays(); stopListening(); renderBindings(); }; listeningAction = { action, element, handler }; window.addEventListener('keydown', handler); }
+            function stopListening() { if (listeningAction) { window.removeEventListener('keydown', listeningAction.handler); listeningAction.element.classList.remove('listening'); listeningAction = null; } }
 
-            function renderBindings() {
-                const b = getSafeBindings()[currentTab];
-                const actions = [
-                    { key: 'up', label: '上' }, { key: 'down', label: '下' }, { key: 'left', label: '左' },
-                    { key: 'right', label: '右' }, { key: 'fire', label: '开火' }
-                ];
-                bindingsContainer.innerHTML = actions.map(a => `
-                    <div class="binding-row">
-                        <span class="binding-label">${a.label}</span>
-                        <span class="binding-key" data-action="${a.key}">${getKeyDisplay(b[a.key])}</span>
-                    </div>
-                `).join('');
-                document.querySelectorAll('.binding-key').forEach(el => {
-                    el.addEventListener('click', () => {
-                        if (listeningAction) return;
-                        startListening(el.dataset.action, el);
-                    });
-                });
-            }
-
-            function startListening(action, element) {
-                if (listeningAction) return;
-                element.classList.add('listening');
-                element.textContent = '...';
-                const handler = (e) => {
-                    e.preventDefault();
-                    e.stopImmediatePropagation();
-                    const code = e.code;
-                    const b = getSafeBindings();
-                    for (const player of ['p1', 'p2']) {
-                        for (const act of ['up', 'down', 'left', 'right', 'fire']) {
-                            if (b[player][act] === code && !(player === currentTab && act === action)) {
-                                alert('该按键已被绑定，请使用其他按键。');
-                                stopListening();
-                                renderBindings();
-                                return;
-                            }
-                        }
-                    }
-                    bindings[currentTab][action] = code;
-                    saveBindings();
-                    updateKeyDisplays();
-                    stopListening();
-                    renderBindings();
-                };
-                listeningAction = { action, element, handler };
-                window.addEventListener('keydown', handler);
-            }
-
-            function stopListening() {
-                if (listeningAction) {
-                    window.removeEventListener('keydown', listeningAction.handler);
-                    listeningAction.element.classList.remove('listening');
-                    listeningAction = null;
-                }
-            }
-
-            document.getElementById('settingsBtn').addEventListener('click', () => {
-                settingsOverlay.classList.remove('hidden');
-                currentTab = 'p1';
-                tabP1.classList.add('active');
-                tabP2.classList.remove('active');
-                renderBindings();
-            });
-            tabP1.addEventListener('click', () => { stopListening(); currentTab = 'p1'; tabP1.classList.add('active'); tabP2.classList.remove('active'); renderBindings(); });
-            tabP2.addEventListener('click', () => { stopListening(); currentTab = 'p2'; tabP2.classList.add('active'); tabP1.classList.remove('active'); renderBindings(); });
-            closeSettingsBtn.addEventListener('click', () => { stopListening(); settingsOverlay.classList.add('hidden'); });
-            resetBindingsBtn.addEventListener('click', () => {
-                bindings = JSON.parse(JSON.stringify(defaultBindings));
-                saveBindings();
-                updateKeyDisplays();
-                stopListening();
-                renderBindings();
-            });
+            settingsBtn.addEventListener('click', () => { settingsOverlay.classList.remove('hidden'); currentTab='p1'; tabP1.classList.add('active'); tabP2.classList.remove('active'); renderBindings(); });
+            tabP1.addEventListener('click', () => { stopListening(); currentTab='p1'; tabP1.classList.add('active'); tabP2.classList.remove('active'); renderBindings(); });
+            tabP2.addEventListener('click', () => { stopListening(); currentTab='p2'; tabP2.classList.add('active'); tabP1.classList.remove('active'); renderBindings(); });
+            document.getElementById('closeSettings').addEventListener('click', () => { stopListening(); settingsOverlay.classList.add('hidden'); });
+            document.getElementById('resetBindings').addEventListener('click', () => { bindings = JSON.parse(JSON.stringify(defaultBindings)); saveBindings(); updateKeyDisplays(); stopListening(); renderBindings(); });
             settingsOverlay.addEventListener('click', (e) => { if (e.target === settingsOverlay) { stopListening(); settingsOverlay.classList.add('hidden'); } });
 
-            // ========== 游戏状态 ==========
+            // 游戏状态
             let owl, fox, owlController, swapTimer, gameActive, gameOver, winnerMessage, swapFlash;
             let bullets, bombs, crates, innerLines, explosions;
             let player1HP, player2HP;
             let lastOwlDir, lastFoxDir;
             const keys = new Set();
-            let lastTimestamp = 0;
-            let animationId = null;
+            let lastTimestamp = 0, animationId = null;
+            let p1LastFireTime = 0, p2LastFireTime = 0;
 
-            const borderLines = [
-                { x1: 0, y1: 0, x2: WORLD_W, y2: 0 },
-                { x1: WORLD_W, y1: 0, x2: WORLD_W, y2: WORLD_H },
-                { x1: WORLD_W, y1: WORLD_H, x2: 0, y2: WORLD_H },
-                { x1: 0, y1: WORLD_H, x2: 0, y2: 0 }
-            ];
+            const borderLines = [{ x1:0,y1:0,x2:WORLD_W,y2:0 },{ x1:WORLD_W,y1:0,x2:WORLD_W,y2:WORLD_H },{ x1:WORLD_W,y1:WORLD_H,x2:0,y2:WORLD_H },{ x1:0,y1:WORLD_H,x2:0,y2:0 }];
 
             function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-            window.addEventListener('resize', resizeCanvas);
-            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas); resizeCanvas();
 
             function getPlayerRole(p) { return owlController === p ? 'owl' : 'fox'; }
-            function getRoleObj(r) { return r === 'owl' ? owl : fox; }
+            function getRoleObj(r) { return r==='owl'?owl:fox; }
             function getAllLines() { return [...borderLines, ...innerLines]; }
-            function getRoleController(role) { return role === 'owl' ? owlController : (owlController === 'player1' ? 'player2' : 'player1'); }
+            function getRoleController(role) { return role==='owl' ? owlController : (owlController==='player1'?'player2':'player1'); }
 
-            function distToSegment(px, py, x1, y1, x2, y2) {
-                const dx = x2 - x1, dy = y2 - y1;
-                const lenSq = dx * dx + dy * dy;
-                if (lenSq === 0) return Math.hypot(px - x1, py - y1);
-                let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
-                t = Math.max(0, Math.min(1, t));
-                return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
-            }
+            function distToSegment(px,py,x1,y1,x2,y2) { const dx=x2-x1,dy=y2-y1; const lenSq=dx*dx+dy*dy; if(lenSq===0) return Math.hypot(px-x1,py-y1); let t=((px-x1)*dx+(py-y1)*dy)/lenSq; t=Math.max(0,Math.min(1,t)); return Math.hypot(px-(x1+t*dx),py-(y1+t*dy)); }
+            function circleHitsLines(cx,cy,r,lines) { for(const l of lines) if(distToSegment(cx,cy,l.x1,l.y1,l.x2,l.y2)<r) return true; return false; }
+            function moveCircle(cx,cy,dx,dy,r,lines) { let nx=cx+dx,ny=cy+dy; if(circleHitsLines(nx,cy,r,lines)) nx=cx; if(circleHitsLines(cx,ny,r,lines)) ny=cy; return {x:nx,y:ny}; }
+            function circlesOverlap(x1,y1,r1,x2,y2,r2) { return Math.hypot(x2-x1,y2-y1)<(r1+r2); }
 
-            function circleHitsLines(cx, cy, r, lines) {
-                for (const l of lines) if (distToSegment(cx, cy, l.x1, l.y1, l.x2, l.y2) < r) return true;
-                return false;
-            }
+            function generateRandomLines() { const lines=[]; const count=12+Math.floor(Math.random()*8); for(let i=0;i<count*3&&lines.length<count;i++) { const h=Math.random()<0.5; let x1,y1,x2,y2; if(h) { y1=60+Math.random()*(WORLD_H-120); x1=60+Math.random()*(WORLD_W-240); x2=x1+60+Math.random()*180; y2=y1; } else { x1=60+Math.random()*(WORLD_W-120); y1=60+Math.random()*(WORLD_H-240); y2=y1+60+Math.random()*180; x2=x1; } if(Math.hypot(x1-150,y1-120)<80||Math.hypot(x1-750,y1-480)<80) continue; lines.push({x1,y1,x2,y2}); } return lines; }
 
-            function moveCircle(cx, cy, dx, dy, r, lines) {
-                let nx = cx + dx, ny = cy + dy;
-                if (circleHitsLines(nx, cy, r, lines)) nx = cx;
-                if (circleHitsLines(cx, ny, r, lines)) ny = cy;
-                return { x: nx, y: ny };
-            }
-
-            function circlesOverlap(x1, y1, r1, x2, y2, r2) { return Math.hypot(x2 - x1, y2 - y1) < (r1 + r2); }
-
-            function generateRandomLines() {
-                const lines = [];
-                const count = 12 + Math.floor(Math.random() * 8);
-                for (let i = 0; i < count * 3 && lines.length < count; i++) {
-                    const horizontal = Math.random() < 0.5;
-                    let x1, y1, x2, y2;
-                    if (horizontal) {
-                        y1 = 60 + Math.random() * (WORLD_H - 120);
-                        x1 = 60 + Math.random() * (WORLD_W - 240);
-                        x2 = x1 + 60 + Math.random() * 180;
-                        y2 = y1;
-                    } else {
-                        x1 = 60 + Math.random() * (WORLD_W - 120);
-                        y1 = 60 + Math.random() * (WORLD_H - 240);
-                        y2 = y1 + 60 + Math.random() * 180;
-                        x2 = x1;
-                    }
-                    if (Math.hypot(x1 - 150, y1 - 120) < 80 || Math.hypot(x1 - 750, y1 - 480) < 80) continue;
-                    lines.push({ x1, y1, x2, y2 });
+            function spawnCrates(count=5) {
+                const arr=[], allLines=getAllLines();
+                const types = ['pistol', 'bomb', 'machinegun'];
+                while(types.length < count) types.push(['pistol','bomb','machinegun'][Math.floor(Math.random()*3)]);
+                for(let i=types.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1)); [types[i],types[j]]=[types[j],types[i]]; }
+                for(let i=0;i<count*15&&arr.length<count;i++) {
+                    const x=50+Math.random()*(WORLD_W-100), y=50+Math.random()*(WORLD_H-100);
+                    if(circleHitsLines(x,y,CRATE_RADIUS+6,allLines)) continue;
+                    if(Math.hypot(x-owl.x,y-owl.y)<90||Math.hypot(x-fox.x,y-fox.y)<90) continue;
+                    arr.push({x,y,type:types[arr.length]});
                 }
-                return lines;
-            }
-
-            function spawnCrates(count = 5) {
-                const arr = [];
-                const allLines = getAllLines();
-                const pistolCount = 2 + Math.floor(Math.random() * 3);
-                const bombCount = count - pistolCount;
-                const types = [];
-                for (let i = 0; i < pistolCount; i++) types.push('pistol');
-                for (let i = 0; i < bombCount; i++) types.push('bomb');
-                for (let i = types.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [types[i], types[j]] = [types[j], types[i]]; }
-                for (let i = 0; i < count * 15 && arr.length < count; i++) {
-                    const x = 50 + Math.random() * (WORLD_W - 100), y = 50 + Math.random() * (WORLD_H - 100);
-                    if (circleHitsLines(x, y, CRATE_RADIUS + 6, allLines)) continue;
-                    if (Math.hypot(x - 150, y - 120) < 90 || Math.hypot(x - 750, y - 480) < 90) continue;
-                    arr.push({ x, y, type: types[arr.length] });
-                }
-                while (arr.length < count) arr.push({ x: 50 + Math.random() * (WORLD_W - 100), y: 50 + Math.random() * (WORLD_H - 100), type: types[arr.length] });
+                while(arr.length<count) arr.push({x:50+Math.random()*(WORLD_W-100),y:50+Math.random()*(WORLD_H-100),type:types[arr.length]});
                 return arr;
             }
 
             function fireWeapon(role, player) {
-                const obj = getRoleObj(role);
-                if (!obj || !obj.weapon || obj.weapon.ammo <= 0) return;
-                const b = getSafeBindings()[player === 'player1' ? 'p1' : 'p2'];
-                if (!b) return;
-                let dx = 0, dy = 0;
-                if (keys.has(b.up)) dy -= 1; if (keys.has(b.down)) dy += 1;
-                if (keys.has(b.left)) dx -= 1; if (keys.has(b.right)) dx += 1;
-                let dir;
-                if (dx !== 0 || dy !== 0) { const len = Math.hypot(dx, dy); dir = { dx: dx / len, dy: dy / len }; }
-                else dir = (role === 'owl' ? lastOwlDir : lastFoxDir);
-                const len = Math.hypot(dir.dx, dir.dy);
-                if (len === 0) return;
-                const norm = { dx: dir.dx / len, dy: dir.dy / len };
-                if (obj.weapon.type === 'pistol') {
-                    bullets.push({ x: obj.x, y: obj.y, vx: norm.dx * BULLET_SPEED, vy: norm.dy * BULLET_SPEED, owner: player, role });
-                } else {
-                    const off = PLAYER_RADIUS + 8;
-                    bombs.push({ x: obj.x + norm.dx * off, y: obj.y + norm.dy * off, vx: norm.dx * BOMB_SPEED, vy: norm.dy * BOMB_SPEED, timer: BOMB_TIMER, owner: player, role, grace: BOMB_GRACE_PERIOD });
+                const obj=getRoleObj(role); if(!obj||!obj.weapon||obj.weapon.ammo<=0) return;
+                const b=getSafeBindings()[player==='player1'?'p1':'p2']; if(!b) return;
+                let dx=0,dy=0;
+                if(keys.has(b.up)) dy-=1; if(keys.has(b.down)) dy+=1;
+                if(keys.has(b.left)) dx-=1; if(keys.has(b.right)) dx+=1;
+                let dir; if(dx!==0||dy!==0) { const len=Math.hypot(dx,dy); dir={dx:dx/len,dy:dy/len}; } else dir=(role==='owl'?lastOwlDir:lastFoxDir);
+                const len=Math.hypot(dir.dx,dir.dy); if(len===0) return;
+                const norm={dx:dir.dx/len,dy:dir.dy/len};
+                if(obj.weapon.type==='pistol'||obj.weapon.type==='machinegun') {
+                    bullets.push({x:obj.x,y:obj.y,vx:norm.dx*BULLET_SPEED,vy:norm.dy*BULLET_SPEED,owner:player,role});
+                } else if(obj.weapon.type==='bomb') {
+                    const off=PLAYER_RADIUS+8;
+                    bombs.push({x:obj.x+norm.dx*off,y:obj.y+norm.dy*off,vx:norm.dx*BOMB_SPEED,vy:norm.dy*BOMB_SPEED,timer:BOMB_TIMER,owner:player,role,grace:BOMB_GRACE_PERIOD});
                 }
-                obj.weapon.ammo--;
-                if (obj.weapon.ammo <= 0) obj.weapon = null;
+                obj.weapon.ammo--; if(obj.weapon.ammo<=0) obj.weapon=null;
             }
 
             function applyDamage(targetRole, amount, attackerPlayer) {
-                const targetController = getRoleController(targetRole);
-                if (targetController === 'player1') { player1HP -= amount; if (player1HP < 0) player1HP = 0; }
-                else { player2HP -= amount; if (player2HP < 0) player2HP = 0; }
+                const targetController=getRoleController(targetRole);
+                if(targetController==='player1') { player1HP-=amount; if(player1HP<0) player1HP=0; }
+                else { player2HP-=amount; if(player2HP<0) player2HP=0; }
                 updatePlayerHPUI();
-                if (player1HP <= 0 || player2HP <= 0) {
-                    gameOver = true; gameActive = false;
-                    const loser = player1HP <= 0 ? playerNames.p1 : playerNames.p2;
-                    const winner = loser === playerNames.p1 ? playerNames.p2 : playerNames.p1;
-                    winnerMessage = `💀 ${winner} 获胜！`;
-                    startBtn.textContent = '↻ 重新开始';
-                    startBtn.classList.remove('hidden');
-                    controlsHint.classList.add('hidden');
+                if(player1HP<=0||player2HP<=0) {
+                    gameOver=true; gameActive=false;
+                    const loser=player1HP<=0?playerNames.p1:playerNames.p2;
+                    const winner=loser===playerNames.p1?playerNames.p2:playerNames.p1;
+                    winnerMessage=`💀 ${winner} 获胜！`;
+                    startBtn.textContent='↻ 重新开始'; startBtn.classList.remove('hidden'); controlsHint.classList.add('hidden');
                 }
             }
 
             function explodeBomb(bomb) {
-                explosions.push({ x: bomb.x, y: bomb.y, radius: 0, maxRadius: EXPLOSION_RADIUS, timer: EXPLOSION_DISPLAY_TIME });
-                for (const t of [{ role: 'owl', obj: owl }, { role: 'fox', obj: fox }]) {
-                    const dist = Math.hypot(t.obj.x - bomb.x, t.obj.y - bomb.y);
-                    if (dist < EXPLOSION_RADIUS) {
-                        const damage = dist < EXPLOSION_CENTER_RADIUS ? DAMAGE_CENTER : DAMAGE_NORMAL;
+                explosions.push({x:bomb.x,y:bomb.y,radius:0,maxRadius:EXPLOSION_RADIUS,timer:EXPLOSION_DISPLAY_TIME});
+                for(const t of [{role:'owl',obj:owl},{role:'fox',obj:fox}]) {
+                    const dist=Math.hypot(t.obj.x-bomb.x,t.obj.y-bomb.y);
+                    if(dist<EXPLOSION_RADIUS) {
+                        const damage=dist<EXPLOSION_CENTER_RADIUS?DAMAGE_BOMB_CENTER:DAMAGE_BOMB_NORMAL;
                         applyDamage(t.role, damage, bomb.owner);
-                        if (gameOver) break;
+                        if(gameOver) break;
                     }
                 }
             }
 
             function updatePlayerHPUI() {
-                document.getElementById('p1HPFill').style.width = player1HP + '%';
-                document.getElementById('p2HPFill').style.width = player2HP + '%';
+                document.getElementById('p1HPFill').style.width = player1HP+'%';
+                document.getElementById('p2HPFill').style.width = player2HP+'%';
             }
 
             function update(dt) {
-                if (!gameActive || gameOver) return;
-                const dtC = Math.min(dt, 0.05);
-                for (let i = explosions.length - 1; i >= 0; i--) {
-                    explosions[i].timer -= dtC;
-                    explosions[i].radius = (1 - explosions[i].timer / EXPLOSION_DISPLAY_TIME) * explosions[i].maxRadius;
-                    if (explosions[i].timer <= 0) explosions.splice(i, 1);
-                }
-                swapTimer -= dtC;
-                if (swapTimer <= 0) { owlController = owlController === 'player1' ? 'player2' : 'player1'; swapTimer += SWAP_INTERVAL; swapFlash = 1.2; updateUI(); }
-                if (swapFlash > 0) swapFlash = Math.max(0, swapFlash - dtC);
-                const allLines = getAllLines();
-                const moveDist = PLAYER_SPEED * dtC;
-                function movePlayer(player) {
-                    const b = getSafeBindings()[player === 'player1' ? 'p1' : 'p2'];
-                    if (!b) return;
-                    const role = getPlayerRole(player), obj = getRoleObj(role);
-                    if (!obj) return;
-                    let dx = 0, dy = 0;
-                    if (keys.has(b.up)) dy -= 1; if (keys.has(b.down)) dy += 1;
-                    if (keys.has(b.left)) dx -= 1; if (keys.has(b.right)) dx += 1;
-                    if (dx !== 0 || dy !== 0) {
-                        const len = Math.hypot(dx, dy), dir = { dx: dx / len, dy: dy / len };
-                        const res = moveCircle(obj.x, obj.y, dir.dx * moveDist, dir.dy * moveDist, PLAYER_RADIUS, allLines);
-                        obj.x = res.x; obj.y = res.y;
-                        if (role === 'owl') lastOwlDir = dir; else lastFoxDir = dir;
+                if(!gameActive||gameOver) return;
+                const dtC=Math.min(dt,0.05);
+                const now = performance.now();
+
+                const safeB = getSafeBindings();
+                if (keys.has(safeB.p1.fire) && gameActive && !gameOver) {
+                    if (now - p1LastFireTime >= FIRE_COOLDOWN) {
+                        fireWeapon(getPlayerRole('player1'), 'player1');
+                        p1LastFireTime = now;
                     }
                 }
+                if (keys.has(safeB.p2.fire) && gameActive && !gameOver) {
+                    if (now - p2LastFireTime >= FIRE_COOLDOWN) {
+                        fireWeapon(getPlayerRole('player2'), 'player2');
+                        p2LastFireTime = now;
+                    }
+                }
+
+                for(let i=explosions.length-1;i>=0;i--) { explosions[i].timer-=dtC; explosions[i].radius=(1-explosions[i].timer/EXPLOSION_DISPLAY_TIME)*explosions[i].maxRadius; if(explosions[i].timer<=0) explosions.splice(i,1); }
+                swapTimer-=dtC; if(swapTimer<=0) { owlController=owlController==='player1'?'player2':'player1'; swapTimer+=SWAP_INTERVAL; swapFlash=1.2; updateUI(); }
+                if(swapFlash>0) swapFlash=Math.max(0,swapFlash-dtC);
+                const allLines=getAllLines(), moveDist=PLAYER_SPEED*dtC;
+                function movePlayer(player) {
+                    const b=getSafeBindings()[player==='player1'?'p1':'p2']; if(!b) return;
+                    const role=getPlayerRole(player), obj=getRoleObj(role); if(!obj) return;
+                    let dx=0,dy=0; if(keys.has(b.up)) dy-=1; if(keys.has(b.down)) dy+=1; if(keys.has(b.left)) dx-=1; if(keys.has(b.right)) dx+=1;
+                    if(dx!==0||dy!==0) { const len=Math.hypot(dx,dy); const dir={dx:dx/len,dy:dy/len}; const res=moveCircle(obj.x,obj.y,dir.dx*moveDist,dir.dy*moveDist,PLAYER_RADIUS,allLines); obj.x=res.x; obj.y=res.y; if(role==='owl') lastOwlDir=dir; else lastFoxDir=dir; }
+                }
                 movePlayer('player1'); movePlayer('player2');
-                if (circlesOverlap(owl.x, owl.y, PLAYER_RADIUS, fox.x, fox.y, PLAYER_RADIUS)) {
-                    gameOver = true; gameActive = false;
-                    const foxController = getRoleController('fox');
-                    const winner = foxController === 'player1' ? playerNames.p2 : playerNames.p1;
-                    winnerMessage = `🦊 ${playerNames[foxController]} 的狐狸被撞，${winner} 获胜！`;
-                    startBtn.textContent = '↻ 重新开始';
-                    startBtn.classList.remove('hidden');
-                    controlsHint.classList.add('hidden');
-                    return;
+                if(circlesOverlap(owl.x,owl.y,PLAYER_RADIUS,fox.x,fox.y,PLAYER_RADIUS)) {
+                    gameOver=true; gameActive=false;
+                    const foxController=getRoleController('fox'), winner=foxController==='player1'?playerNames.p2:playerNames.p1;
+                    winnerMessage=`🦊 ${playerNames[foxController]} 的狐狸被撞，${winner} 获胜！`;
+                    startBtn.textContent='↻ 重新开始'; startBtn.classList.remove('hidden'); controlsHint.classList.add('hidden'); return;
                 }
-                for (let i = bullets.length - 1; i >= 0; i--) {
-                    const b = bullets[i]; b.x += b.vx * dtC; b.y += b.vy * dtC;
-                    if (b.x < 5 || b.x > WORLD_W - 5 || b.y < 5 || b.y > WORLD_H - 5 || circleHitsLines(b.x, b.y, 4, allLines)) { bullets.splice(i, 1); continue; }
-                    const otherRole = b.role === 'owl' ? 'fox' : 'owl', otherObj = getRoleObj(otherRole);
-                    if (circlesOverlap(b.x, b.y, 4, otherObj.x, otherObj.y, PLAYER_RADIUS)) { applyDamage(otherRole, DAMAGE_NORMAL, b.owner); bullets.splice(i, 1); if (gameOver) return; }
+                for(let i=bullets.length-1;i>=0;i--) { const b=bullets[i]; b.x+=b.vx*dtC; b.y+=b.vy*dtC; if(b.x<5||b.x>WORLD_W-5||b.y<5||b.y>WORLD_H-5||circleHitsLines(b.x,b.y,4,allLines)) { bullets.splice(i,1); continue; } const otherRole=b.role==='owl'?'fox':'owl', otherObj=getRoleObj(otherRole); if(circlesOverlap(b.x,b.y,4,otherObj.x,otherObj.y,PLAYER_RADIUS)) { applyDamage(otherRole, DAMAGE_BULLET, b.owner); bullets.splice(i,1); if(gameOver) return; } }
+                for(let i=bombs.length-1;i>=0;i--) { const b=bombs[i]; b.x+=b.vx*dtC; b.y+=b.vy*dtC; b.timer-=dtC; if(b.grace>0) b.grace-=dtC; let explode=false; if(circleHitsLines(b.x,b.y,5,allLines)) explode=true; else if(b.x<6||b.x>WORLD_W-6||b.y<6||b.y>WORLD_H-6) explode=true; else if(b.timer<=0) explode=true; else if(b.grace<=0) { const enemyRole=b.role==='owl'?'fox':'owl', enemyObj=getRoleObj(enemyRole); if(circlesOverlap(b.x,b.y,6,enemyObj.x,enemyObj.y,PLAYER_RADIUS)) explode=true; } if(explode) { bombs.splice(i,1); explodeBomb(b); if(gameOver) return; } }
+                for(let i=crates.length-1;i>=0;i--) {
+                    const c=crates[i];
+                    if(circlesOverlap(c.x,c.y,CRATE_RADIUS,owl.x,owl.y,PLAYER_RADIUS)) {
+                        if(!owl.weapon) {
+                            const maxAmmo = c.type==='pistol'?5: (c.type==='bomb'?2:50);
+                            owl.weapon = { type: c.type, ammo: maxAmmo, maxAmmo: maxAmmo };
+                            crates.splice(i,1);
+                        }
+                    } else if(circlesOverlap(c.x,c.y,CRATE_RADIUS,fox.x,fox.y,PLAYER_RADIUS)) {
+                        if(!fox.weapon) {
+                            const maxAmmo = c.type==='pistol'?5: (c.type==='bomb'?2:50);
+                            fox.weapon = { type: c.type, ammo: maxAmmo, maxAmmo: maxAmmo };
+                            crates.splice(i,1);
+                        }
+                    }
                 }
-                for (let i = bombs.length - 1; i >= 0; i--) {
-                    const b = bombs[i]; b.x += b.vx * dtC; b.y += b.vy * dtC; b.timer -= dtC; if (b.grace > 0) b.grace -= dtC;
-                    let explode = false;
-                    if (circleHitsLines(b.x, b.y, 5, allLines)) explode = true;
-                    else if (b.x < 6 || b.x > WORLD_W - 6 || b.y < 6 || b.y > WORLD_H - 6) explode = true;
-                    else if (b.timer <= 0) explode = true;
-                    else if (b.grace <= 0) { const enemyRole = b.role === 'owl' ? 'fox' : 'owl', enemyObj = getRoleObj(enemyRole); if (circlesOverlap(b.x, b.y, 6, enemyObj.x, enemyObj.y, PLAYER_RADIUS)) explode = true; }
-                    if (explode) { bombs.splice(i, 1); explodeBomb(b); if (gameOver) return; }
-                }
-                for (let i = crates.length - 1; i >= 0; i--) {
-                    const c = crates[i];
-                    if (circlesOverlap(c.x, c.y, CRATE_RADIUS, owl.x, owl.y, PLAYER_RADIUS)) { if (!owl.weapon) { owl.weapon = { type: c.type, ammo: c.type === 'pistol' ? 5 : 2 }; crates.splice(i, 1); } }
-                    else if (circlesOverlap(c.x, c.y, CRATE_RADIUS, fox.x, fox.y, PLAYER_RADIUS)) { if (!fox.weapon) { fox.weapon = { type: c.type, ammo: c.type === 'pistol' ? 5 : 2 }; crates.splice(i, 1); } }
-                }
+                if (crates.length === 0) { const newCrates = spawnCrates(CRATE_RESPAWN_COUNT); for (const nc of newCrates) crates.push(nc); }
                 updateTimerUI();
             }
 
             function draw() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                const scale = Math.min(canvas.width / WORLD_W, canvas.height / WORLD_H);
-                const ox = (canvas.width - WORLD_W * scale) / 2, oy = (canvas.height - WORLD_H * scale) / 2;
-                ctx.save(); ctx.translate(ox, oy); ctx.scale(scale, scale);
-                ctx.fillStyle = '#faf8f0'; ctx.fillRect(0, 0, WORLD_W, WORLD_H);
-                ctx.strokeStyle = '#444'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
-                for (const l of getAllLines()) { ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke(); }
-                for (const c of crates) { ctx.fillStyle = '#c99c47'; ctx.beginPath(); ctx.arc(c.x, c.y, 10, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = '14px "Segoe UI Emoji"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(c.type === 'pistol' ? '🔫' : '💣', c.x, c.y - 1); }
-                for (const exp of explosions) { const a = exp.timer / EXPLOSION_DISPLAY_TIME; ctx.strokeStyle = `rgba(255,80,30,${a*0.9})`; ctx.lineWidth = 4 * a; ctx.beginPath(); ctx.arc(exp.x, exp.y, exp.radius, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = `rgba(255,200,0,${a*0.8})`; ctx.beginPath(); ctx.arc(exp.x, exp.y, exp.radius * 0.3, 0, Math.PI * 2); ctx.fill(); }
-                ctx.fillStyle = '#222'; for (const b of bullets) { ctx.beginPath(); ctx.arc(b.x, b.y, 3.5, 0, Math.PI * 2); ctx.fill(); }
-                for (const b of bombs) { ctx.fillStyle = '#d44'; ctx.beginPath(); ctx.arc(b.x, b.y, 6, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = '9px sans-serif'; ctx.fillText('💣', b.x, b.y - 1); }
-                ctx.font = '34px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#222';
-                ctx.fillText('🦉', owl.x, owl.y); ctx.fillText('🦊', fox.x, fox.y);
-                function drawWeapon(obj) { if (!obj || !obj.weapon) return; ctx.font = '18px "Segoe UI Emoji"'; ctx.fillText(`${obj.weapon.type==='pistol'?'🔫':'💣'}×${obj.weapon.ammo}`, obj.x + 24, obj.y - 20); }
-                drawWeapon(owl); drawWeapon(fox);
-                if (swapFlash > 0 && gameActive) { ctx.fillStyle = `rgba(0,0,0,${Math.min(swapFlash,0.8)})`; ctx.font = 'bold 24px "Segoe UI","PingFang SC","Microsoft YaHei"'; ctx.fillText('🔄 角色互换！', WORLD_W / 2, 60); }
-                if (gameOver) { ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, WORLD_W, WORLD_H); ctx.fillStyle = '#ffd966'; ctx.font = 'bold 30px "Segoe UI","PingFang SC","Microsoft YaHei"'; ctx.fillText(winnerMessage, WORLD_W / 2, WORLD_H / 2 - 20); ctx.fillStyle = '#fff'; ctx.font = '17px sans-serif'; ctx.fillText('点击按钮或按空格键重新开始', WORLD_W / 2, WORLD_H / 2 + 40); }
+                ctx.clearRect(0,0,canvas.width,canvas.height);
+                const scale=Math.min(canvas.width/WORLD_W,canvas.height/WORLD_H);
+                const ox=(canvas.width-WORLD_W*scale)/2, oy=(canvas.height-WORLD_H*scale)/2;
+                ctx.save(); ctx.translate(ox,oy); ctx.scale(scale,scale);
+                ctx.fillStyle='#faf8f0'; ctx.fillRect(0,0,WORLD_W,WORLD_H);
+                ctx.strokeStyle='#444'; ctx.lineWidth=2.5; ctx.lineCap='round';
+                for(const l of getAllLines()) { ctx.beginPath(); ctx.moveTo(l.x1,l.y1); ctx.lineTo(l.x2,l.y2); ctx.stroke(); }
+                for(const c of crates) {
+                    ctx.fillStyle='#8B5A2B';
+                    ctx.fillRect(c.x-10, c.y-10, 20, 20);
+                    ctx.strokeStyle='#5a3a1a';
+                    ctx.strokeRect(c.x-10, c.y-10, 20, 20);
+                    ctx.fillStyle='#fff';
+                    ctx.font='16px "Segoe UI Emoji"';
+                    ctx.textAlign='center'; ctx.textBaseline='middle';
+                    ctx.fillText('📦', c.x, c.y);
+                }
+                for(const exp of explosions) { const a=exp.timer/EXPLOSION_DISPLAY_TIME; ctx.strokeStyle=`rgba(255,80,30,${a*0.9})`; ctx.lineWidth=4*a; ctx.beginPath(); ctx.arc(exp.x,exp.y,exp.radius,0,Math.PI*2); ctx.stroke(); ctx.fillStyle=`rgba(255,200,0,${a*0.8})`; ctx.beginPath(); ctx.arc(exp.x,exp.y,exp.radius*0.3,0,Math.PI*2); ctx.fill(); }
+                ctx.fillStyle='#222'; for(const b of bullets) { ctx.beginPath(); ctx.arc(b.x,b.y,3.5,0,Math.PI*2); ctx.fill(); }
+                for(const b of bombs) { ctx.fillStyle='#d44'; ctx.beginPath(); ctx.arc(b.x,b.y,6,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#fff'; ctx.font='9px sans-serif'; ctx.fillText('💣',b.x,b.y-1); }
+                ctx.font='34px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji"'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='#222';
+                ctx.fillText('🦉',owl.x,owl.y); ctx.fillText('🦊',fox.x,fox.y);
+
+                function drawWeapon(obj, dir) {
+                    if(!obj||!obj.weapon) return;
+                    const icon = obj.weapon.type==='pistol'?'🔫': (obj.weapon.type==='bomb'?'💣':'🔫');
+                    const d = dir || {dx:1, dy:0};
+                    const angle = Math.atan2(d.dy, d.dx);
+                    const correctedAngle = angle + Math.PI;
+                    const wx = obj.x + Math.cos(angle) * WEAPON_OFFSET_DISTANCE;
+                    const wy = obj.y + Math.sin(angle) * WEAPON_OFFSET_DISTANCE;
+                    ctx.save();
+                    ctx.translate(wx, wy);
+                    ctx.rotate(correctedAngle);
+                    ctx.font = '18px "Segoe UI Emoji"';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(icon, 0, 0);
+                    ctx.restore();
+                }
+
+                function drawAmmoInfo(obj) {
+                    if (!obj || !obj.weapon) return;
+                    const max = obj.weapon.maxAmmo || 5;
+                    const ammo = obj.weapon.ammo;
+                    const text = `${ammo}/${max}`;
+                    const textY = obj.y - 42;
+                    // 绘制背景框
+                    ctx.font = 'bold 12px "Segoe UI", sans-serif';
+                    const textWidth = ctx.measureText(text).width;
+                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                    ctx.fillRect(obj.x - textWidth/2 - 6, textY - 14, textWidth + 12, 18);
+                    // 绘制文本
+                    ctx.fillStyle = '#ffd966';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(text, obj.x, textY);
+                }
+
+                drawWeapon(owl, lastOwlDir);
+                drawWeapon(fox, lastFoxDir);
+                drawAmmoInfo(owl);
+                drawAmmoInfo(fox);
+
+                if(swapFlash>0&&gameActive) { ctx.fillStyle=`rgba(0,0,0,${Math.min(swapFlash,0.8)})`; ctx.font='bold 24px "Segoe UI","PingFang SC","Microsoft YaHei"'; ctx.fillText('🔄 角色互换！',WORLD_W/2,60); }
+                if(gameOver) { ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,WORLD_W,WORLD_H); ctx.fillStyle='#ffd966'; ctx.font='bold 30px "Segoe UI","PingFang SC","Microsoft YaHei"'; ctx.fillText(winnerMessage,WORLD_W/2,WORLD_H/2-20); ctx.fillStyle='#fff'; ctx.font='17px sans-serif'; ctx.fillText('点击按钮或按空格键重新开始',WORLD_W/2,WORLD_H/2+40); }
                 ctx.restore();
             }
 
-            function updateUI() {
-                if (owlController === 'player1') { emojiP1.textContent = '🦉'; emojiP2.textContent = '🦊'; }
-                else { emojiP1.textContent = '🦊'; emojiP2.textContent = '🦉'; }
-                updateTimerUI(); updatePlayerHPUI();
-            }
-
-            function updateTimerUI() {
-                const remaining = Math.max(0, swapTimer);
-                timerFill.style.width = (remaining / SWAP_INTERVAL * 100) + '%';
-                timerDisplay.textContent = remaining.toFixed(1);
-                timerFill.classList.remove('warning', 'danger');
-                if (remaining <= 2) timerFill.classList.add('danger');
-                else if (remaining <= 4) timerFill.classList.add('warning');
-            }
+            function updateUI() { if(owlController==='player1') { emojiP1.textContent='🦉'; emojiP2.textContent='🦊'; } else { emojiP1.textContent='🦊'; emojiP2.textContent='🦉'; } updateTimerUI(); updatePlayerHPUI(); }
+            function updateTimerUI() { const remaining=Math.max(0,swapTimer); timerFill.style.width=(remaining/SWAP_INTERVAL*100)+'%'; timerDisplay.textContent=remaining.toFixed(1); timerFill.classList.remove('warning','danger'); if(remaining<=2) timerFill.classList.add('danger'); else if(remaining<=4) timerFill.classList.add('warning'); }
 
             function resetGame() {
-                owl = { x: 150, y: 120, weapon: null }; fox = { x: 750, y: 480, weapon: null };
-                owlController = 'player1'; player1HP = 100; player2HP = 100;
-                swapTimer = SWAP_INTERVAL; gameActive = false; gameOver = false; winnerMessage = ''; swapFlash = 0;
-                bullets = []; bombs = []; explosions = [];
-                innerLines = generateRandomLines(); crates = spawnCrates(5);
-                lastOwlDir = { dx: 1, dy: 0 }; lastFoxDir = { dx: -1, dy: 0 };
-                keys.clear();
-                updateUI();
-                startBtn.textContent = '▶ 开始游戏'; startBtn.classList.remove('hidden'); controlsHint.classList.remove('hidden');
+                owl={x:150,y:120,weapon:null}; fox={x:750,y:480,weapon:null}; owlController='player1'; player1HP=100; player2HP=100;
+                swapTimer=SWAP_INTERVAL; gameActive=false; gameOver=false; winnerMessage=''; swapFlash=0;
+                bullets=[]; bombs=[]; explosions=[]; innerLines=generateRandomLines(); crates=spawnCrates(5);
+                lastOwlDir={dx:1,dy:0}; lastFoxDir={dx:-1,dy:0}; keys.clear();
+                p1LastFireTime = p2LastFireTime = 0;
+                updateUI(); startBtn.textContent='▶ 开始游戏'; startBtn.classList.remove('hidden'); controlsHint.classList.remove('hidden');
             }
 
-            function startGame() {
-                stopListening();
-                resetGame(); gameActive = true; gameOver = false;
-                startBtn.classList.add('hidden'); controlsHint.classList.add('hidden');
-                lastTimestamp = performance.now();
-                if (animationId === null) animationId = requestAnimationFrame(gameLoop);
-            }
+            function startGame() { stopListening(); resetGame(); gameActive=true; gameOver=false; startBtn.classList.add('hidden'); controlsHint.classList.add('hidden'); lastTimestamp=performance.now(); if(animationId===null) animationId=requestAnimationFrame(gameLoop); }
 
-            window.addEventListener('keydown', (e) => {
-                if (listeningAction) return;
-                const allKeys = getAllActionKeys();
-                if (allKeys.has(e.code)) e.preventDefault();
-                keys.add(e.code);
-                if (e.code === 'Space') { if (!gameActive || gameOver) startGame(); return; }
-                if (!gameActive || gameOver) return;
-                const b = getSafeBindings();
-                if (e.code === b.p1.fire) fireWeapon(getPlayerRole('player1'), 'player1');
-                if (e.code === b.p2.fire) fireWeapon(getPlayerRole('player2'), 'player2');
-            });
-            window.addEventListener('keyup', (e) => { if (getAllActionKeys().has(e.code)) e.preventDefault(); keys.delete(e.code); });
-            startBtn.addEventListener('click', () => { if (!gameActive || gameOver) startGame(); });
+            window.addEventListener('keydown', (e) => { if(listeningAction) return; const allKeys=getAllActionKeys(); if(allKeys.has(e.code)) e.preventDefault(); keys.add(e.code); if(e.code==='Space') { if(!gameActive||gameOver) startGame(); return; } });
+            window.addEventListener('keyup', (e) => { if(getAllActionKeys().has(e.code)) e.preventDefault(); keys.delete(e.code); });
+            startBtn.addEventListener('click', () => { if(!gameActive||gameOver) startGame(); });
             window.addEventListener('blur', () => keys.clear());
 
-            function gameLoop(now) {
-                try {
-                    if (!lastTimestamp) lastTimestamp = now;
-                    let dt = (now - lastTimestamp) / 1000;
-                    if (dt > 0.1) dt = 0.1; if (dt <= 0) dt = 0.016;
-                    if (gameActive && !gameOver) update(dt);
-                    draw();
-                    lastTimestamp = now;
-                    animationId = requestAnimationFrame(gameLoop);
-                } catch (err) {
-                    console.error('游戏主循环出错：', err);
-                    animationId = null; gameActive = false;
-                    startBtn.textContent = '↻ 重新开始'; startBtn.classList.remove('hidden');
-                    controlsHint.textContent = '游戏出错，请刷新页面重试'; controlsHint.classList.remove('hidden');
-                }
-            }
+            function gameLoop(now) { try { if(!lastTimestamp) lastTimestamp=now; let dt=(now-lastTimestamp)/1000; if(dt>0.1) dt=0.1; if(dt<=0) dt=0.016; if(gameActive&&!gameOver) update(dt); draw(); lastTimestamp=now; animationId=requestAnimationFrame(gameLoop); } catch(err) { console.error('游戏主循环出错：',err); animationId=null; gameActive=false; startBtn.textContent='↻ 重新开始'; startBtn.classList.remove('hidden'); controlsHint.textContent='游戏出错，请刷新页面重试'; controlsHint.classList.remove('hidden'); } }
 
-            resizeCanvas(); resetGame();
-            lastTimestamp = performance.now();
-            animationId = requestAnimationFrame(gameLoop);
+            resizeCanvas(); resetGame(); lastTimestamp=performance.now(); animationId=requestAnimationFrame(gameLoop);
         })();
     </script>
 </body>
